@@ -1,5 +1,7 @@
 {
   "name" : "Bio",
+  "version": "v0.1",
+  "description": "Tools for bioinformaticians.",
   "auth" : "github:schmidt73",
   "authors": ["Henri Schmidt"],
   "provides" : {
