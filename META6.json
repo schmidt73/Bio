@@ -5,5 +5,6 @@
   "provides" : {
     "Bio::Seq" : "lib/Bio/Seq.rakumod",
     "Bio::IO::CSV" : "lib/Bio/IO/CSV.rakumod"
-  }
+  },
+  "source-url" : "git://github.com/schmidt73/Bio.git"
 }
