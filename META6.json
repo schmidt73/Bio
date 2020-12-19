@@ -1,0 +1,9 @@
+{
+  "name" : "Bio",
+  "auth" : "github:schmidt73",
+  "authors": ["Henri Schmidt"],
+  "provides" : {
+    "Bio::Seq" : "lib/Bio/Seq.rakumod",
+    "Bio::IO::CSV" : "lib/Bio/IO/CSV.rakumod"
+  }
+}
