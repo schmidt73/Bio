@@ -3,6 +3,7 @@
   "version": "v0.1",
   "description": "Tools for bioinformaticians.",
   "auth" : "github:schmidt73",
+  "license" : "Artistic-2.0",
   "authors": ["Henri Schmidt"],
   "provides" : {
     "Bio::Seq" : "lib/Bio/Seq.rakumod",
