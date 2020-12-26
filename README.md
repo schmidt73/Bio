@@ -19,5 +19,12 @@ putting this functionality in one convenient place.
 
 ## Examples
 
-TODO: put examples here.
+```raku
+my $bam   = "test.bam";
+
+my $af = AlignmentFile.new(:bam-file($bam), :flags("r"));
+my @results = $af.query('chr1:20000-20000');
+
+for @results { say $_.seq };
+```
 

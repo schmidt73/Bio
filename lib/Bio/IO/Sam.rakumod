@@ -3,9 +3,6 @@ unit module Sam:auth<Henri Schmidt (henrischmidt73@gmail.com)>;
 use NativeCall;
 
 constant HTSLIB is export = %?RESOURCES<libraries/hts>;
-say "hi";
-say HTSLIB;
-#constant HTSLIB = "hts";
 
 class SamIndex is repr('CPointer') is export { }
 class SamIterator is repr('CPointer') is export { }
@@ -44,7 +41,7 @@ class BamRecord is repr('CStruct') {
             0xF => 'N',
         };
 
-        my $off = ($!core.n_cigar +< 2) + $!core.l_qname;
+        my $off = ($.core.n_cigar +< 2) + $.core.l_qname;
 
         sub decode($idx) {
             my uint8 $x = $.data[($off + $idx / 2).floor];
@@ -64,6 +61,9 @@ sub hts_close(SamFile)
 sub sam_index_load(SamFile, Str is encoded('utf8'))
     is native(HTSLIB) is export returns SamIndex { * }
 
+sub hts_idx_destroy(SamIndex)
+    is native(HTSLIB) is export { * }
+
 sub sam_hdr_read(SamFile)
     is native(HTSLIB) is export returns SamHdr { * }
 
@@ -73,25 +73,114 @@ sub sam_hdr_destroy(SamHdr)
 sub sam_itr_querys(SamIndex, SamHdr, Str is encoded('utf8'))
     is native(HTSLIB) is export returns SamIterator { * }
 
-sub sam_iterator_next(SamFile, SamFile, Pointer[BamRecord])
+sub sam_iterator_next(SamFile, SamIterator, Pointer[BamRecord])
     is native(HTSLIB) is export returns int32 { * }
 
+sub hts_itr_destroy(SamIterator) is native(HTSLIB) is export { * }
+
 sub bam_init1() is native(HTSLIB) is export returns Pointer[BamRecord] { * }
+sub bam_destroy1(Pointer[BamRecord]) is native(HTSLIB) is export { * }
 
-# # my $index = "../../../../guidescan-state-of-the-art/results/bam_files/brunello.bam.bai";
-# my $bam   = "../guidescan-state-of-the-art/results/bam_files/human_all.bam";
+class Sam::HeaderReadException is Exception {
+    has $.bam-file;
+    
+    method message() {
+        "Failed to read header of \"$.bam-file\"."
+    }
+}
 
-# my $fh = hts_open($bam, "r");
-# my $header = sam_hdr_read($fh);
-# my $idx = sam_index_load($fh, $bam);
-# 
-# my $itr = sam_itr_querys($idx, $header, ".");
-# 
-# my $rec = bam_init1();
-# my $ret = sam_iterator_next($fh,  $itr, $rec);
-# 
-# say $ret;
-# say $rec.deref.seq;
-# say $rec.deref.data[0 ... 100];
-# 
-# hts_close($fh);
+class Sam::FileOpenException is Exception {
+    has $.bam-file;
+    has $.flags;
+    
+    method message() {
+        "Failed to open: \"$.bam-file\" with flags \"$.flags\"."
+    }
+}
+
+
+class Sam::IndexLoadException is Exception {
+    has $.bam-file;
+    
+    method message() {
+        "Failed to load index for \"$.bam-file\"."
+    }
+}
+
+class SamRecordIterator does Iterator {
+    has $!query;
+    has SamFile $!fh;
+    has SamHdr $!hdr;
+    has SamIndex $!idx;
+
+    has SamIterator $!iter;
+
+    submethod BUILD(:$!query, :$!fh, :$!hdr, :$!idx) { }
+    
+    method TWEAK() {
+        $!iter = sam_itr_querys($!idx, $!hdr, $!query);     
+        if $!iter ~~ SamIterator:U {
+            die "Failed to open iterator."
+        }
+    }
+
+    submethod DESTROY() {
+        hts_itr_destroy($!iter);
+    }
+
+    method pull-one {
+        my $rec = bam_init1();
+        my $ret = sam_iterator_next($!fh,  $!iter, $rec);
+
+        if $ret >= 0 {
+            return $rec.deref;
+        }
+
+        bam_destroy1($rec);
+        if $ret == -1 {
+            return IterationEnd;
+        } 
+
+        die "Iterator exception.";
+    }
+
+}
+
+class AlignmentFile {
+    has $.bam-file;
+    has $.flags;
+
+    has SamFile $!fh;
+    has SamHdr $!hdr;
+    has SamIndex $!idx;
+
+    submethod BUILD(:$!bam-file, :$!flags) { }
+
+    method TWEAK() {
+        $!fh = hts_open($.bam-file, $.flags);
+        if $!fh ~~ SamFile:U {
+            Sam::FileOpenException.new(:bam-file($.bam-file), :flags($.flags)).throw;
+        }
+
+        $!hdr = sam_hdr_read($!fh);
+        if $!hdr ~~ SamHdr:U {
+            Sam::HeaderReadException.new(:bam-file($.bam-file)).throw;
+        }
+
+        $!idx = sam_index_load($!fh, $.bam-file);
+        if $!idx ~~ SamIndex:U {
+            Sam::IndexLoadException.new(:bam-file($.bam-file)).throw;
+        }
+    }
+
+
+    submethod DESTROY() {
+        hts_idx_destroy($!idx);
+        sam_hdr_destroy($!hdr);
+        hts_close($!fh);
+    }
+
+    method query($q) {
+        Seq.new(SamRecordIterator.new(:fh($!fh), :hdr($!hdr), :idx($!idx), :query($q)))
+    }
+}
