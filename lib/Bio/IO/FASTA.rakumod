@@ -36,16 +36,15 @@ class FASTARecord {
 }
 
 constant $fasta-extensions = rx[fa||fna||fasta||ffn||faa];
-constant $is-fasta-gzip = rx:i/ .*\.<$fasta-extensions>.gz$ /;
 constant $is-fasta = rx:i/ .*\.<$fasta-extensions>$ /;
+
+sub load-fasta-file(Str $filename) {
+    parse-fasta-string $filename.IO.slurp;
+}
 
 constant %record-types = {
     lcl => {name => "Local", pattern => rx:i/ lcl\|(\w+|\d+) / },
     bbs => {name => "GenInfo backbone seqid", pattern => rx:i/ bbs\|(\d+) /}
-}
-
-multi sub load-fasta-file(Str $filename where { $filename ~~ $is-fasta-gzip } --> FASTA) {
-
 }
 
 sub parse-fasta-string($str) {
@@ -74,14 +73,3 @@ sub parse-fasta-string($str) {
 
     return @fasta-records;
 }
-
-my $test-string = (
-    ">lcl|hmm271" ~ "\n" ~
-    "MTEITAAMVKELRESTGAGMMDCKNALSETNGDFDKAVQLLREKGLGKAAKKADRLAAEG" ~ "\n" ~
-    "LVSVKVSDDFTIAAMRPSYLSYEDLDMTFVENEYKALVAELEKENEERRRLKDPNKPEHK" ~ "\n" ~
-    "IPQFASRKQLSDAILKEAEEKIKEELKAQGKPEKIWDNIIPGKMNSFIADNSQLDSKLTL" ~ "\n" ~
-    "MGQFYVMDDKKTVEQVIAEKEKEFGGKIKIVEFICFEVGEGLEKKTEDFAAEVAAQL" ~ "\n" ~
-    ">bbs|123" ~ "\n"
-);
-
-for (parse-fasta-string $test-string) { say $_ };
