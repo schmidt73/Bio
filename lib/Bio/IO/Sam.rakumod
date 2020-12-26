@@ -50,6 +50,14 @@ class BamRecord is repr('CStruct') {
 
         (0 .. $!core.l_qseq - 1).map(&decode).join();
     }
+
+    method name {
+        nativecast(Str, $.data);
+    }
+
+    method strand {
+        if $.core.flag +& 0x10 == 0 { '+' } else { '-' }
+    }
 }
 
 sub hts_open(Str is encoded('utf8'), Str is encoded('utf8'))
@@ -73,13 +81,15 @@ sub sam_hdr_destroy(SamHdr)
 sub sam_itr_querys(SamIndex, SamHdr, Str is encoded('utf8'))
     is native(HTSLIB) is export returns SamIterator { * }
 
-sub sam_iterator_next(SamFile, SamIterator, Pointer[BamRecord])
+sub sam_iterator_next(SamFile, SamIterator, BamRecord)
     is native(HTSLIB) is export returns int32 { * }
 
 sub hts_itr_destroy(SamIterator) is native(HTSLIB) is export { * }
 
-sub bam_init1() is native(HTSLIB) is export returns Pointer[BamRecord] { * }
-sub bam_destroy1(Pointer[BamRecord]) is native(HTSLIB) is export { * }
+sub bam_init1() is native(HTSLIB) is export returns BamRecord { * }
+sub bam_destroy1(BamRecord) is native(HTSLIB) is export { * }
+
+sub sam_hdr_tid2name(SamHdr, int32) is native(HTSLIB) is export returns Str { * }
 
 class Sam::HeaderReadException is Exception {
     has $.bam-file;
@@ -98,12 +108,27 @@ class Sam::FileOpenException is Exception {
     }
 }
 
-
 class Sam::IndexLoadException is Exception {
     has $.bam-file;
     
     method message() {
         "Failed to load index for \"$.bam-file\"."
+    }
+}
+
+class SamRecord {
+    has BamRecord $!rec;
+    has SamHdr $!hdr;
+
+    submethod BUILD(:$!rec, :$!hdr) { }
+
+    method seq { $!rec.seq() }
+    method name { $!rec.name() }
+    method strand { $!rec.strand() }
+    method rname { sam_hdr_tid2name($!hdr, $!rec.core.tid) }
+
+    submethod DESTROY() {
+        bam_destroy1($!rec);
     }
 }
 
@@ -131,12 +156,12 @@ class SamRecordIterator does Iterator {
     method pull-one {
         my $rec = bam_init1();
         my $ret = sam_iterator_next($!fh,  $!iter, $rec);
+        my $sam-rec = SamRecord.new(:hdr($!hdr), :rec($rec));
 
         if $ret >= 0 {
-            return $rec.deref;
+            return $sam-rec;
         }
 
-        bam_destroy1($rec);
         if $ret == -1 {
             return IterationEnd;
         } 
@@ -172,7 +197,6 @@ class AlignmentFile {
             Sam::IndexLoadException.new(:bam-file($.bam-file)).throw;
         }
     }
-
 
     submethod DESTROY() {
         hts_idx_destroy($!idx);

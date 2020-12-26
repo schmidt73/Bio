@@ -23,8 +23,13 @@ putting this functionality in one convenient place.
 my $bam   = "test.bam";
 
 my $af = AlignmentFile.new(:bam-file($bam), :flags("r"));
-my @results = $af.query('chr1:20000-20000');
+my @results = $af.query('NC_000001.11:2-300');
 
-for @results { say $_.seq };
+for @results {
+    say $_.rname;
+    say $_.name;
+    say $_.seq;
+    say $_.strand;
+};
 ```
 
