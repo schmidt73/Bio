@@ -61,37 +61,37 @@ class BamRecord is repr('CStruct') {
 }
 
 sub hts_open(Str is encoded('utf8'), Str is encoded('utf8'))
-    is native(HTSLIB) is export returns SamFile { * }
+    is native(HTSLIB) returns SamFile { * }
 
 sub hts_close(SamFile)
-    is native(HTSLIB) is export returns int32 { * }
+    is native(HTSLIB) returns int32 { * }
 
 sub sam_index_load(SamFile, Str is encoded('utf8'))
-    is native(HTSLIB) is export returns SamIndex { * }
+    is native(HTSLIB) returns SamIndex { * }
 
 sub hts_idx_destroy(SamIndex)
-    is native(HTSLIB) is export { * }
+    is native(HTSLIB) { * }
 
 sub sam_hdr_read(SamFile)
-    is native(HTSLIB) is export returns SamHdr { * }
+    is native(HTSLIB) returns SamHdr { * }
 
 sub sam_hdr_destroy(SamHdr)
-    is native(HTSLIB) is export { * }
+    is native(HTSLIB) { * }
 
 sub sam_itr_querys(SamIndex, SamHdr, Str is encoded('utf8'))
-    is native(HTSLIB) is export returns SamIterator { * }
+    is native(HTSLIB) returns SamIterator { * }
 
 sub sam_iterator_next(SamFile, SamIterator, BamRecord)
-    is native(HTSLIB) is export returns int32 { * }
+    is native(HTSLIB) returns int32 { * }
 
-sub hts_itr_destroy(SamIterator) is native(HTSLIB) is export { * }
+sub hts_itr_destroy(SamIterator) is native(HTSLIB) { * }
 
-sub bam_init1() is native(HTSLIB) is export returns BamRecord { * }
-sub bam_destroy1(BamRecord) is native(HTSLIB) is export { * }
+sub bam_init1() is native(HTSLIB) returns BamRecord { * }
+sub bam_destroy1(BamRecord) is native(HTSLIB) { * }
 
-sub sam_hdr_tid2name(SamHdr, int32) is native(HTSLIB) is export returns Str { * }
+sub sam_hdr_tid2name(SamHdr, int32) is native(HTSLIB) returns Str { * }
 
-class Sam::HeaderReadException is Exception {
+class Sam::HeaderReadException is Exception is export {
     has $.bam-file;
     
     method message() {
@@ -99,7 +99,7 @@ class Sam::HeaderReadException is Exception {
     }
 }
 
-class Sam::FileOpenException is Exception {
+class Sam::FileOpenException is Exception is export {
     has $.bam-file;
     has $.flags;
     
@@ -108,7 +108,7 @@ class Sam::FileOpenException is Exception {
     }
 }
 
-class Sam::IndexLoadException is Exception {
+class Sam::IndexLoadException is Exception is export {
     has $.bam-file;
     
     method message() {
@@ -116,7 +116,7 @@ class Sam::IndexLoadException is Exception {
     }
 }
 
-class SamRecord {
+class SamRecord is export {
     has BamRecord $!rec;
     has SamHdr $!hdr;
 
@@ -132,7 +132,7 @@ class SamRecord {
     }
 }
 
-class SamRecordIterator does Iterator {
+class SamRecordIterator does Iterator is export {
     has $!query;
     has SamFile $!fh;
     has SamHdr $!hdr;
@@ -171,7 +171,7 @@ class SamRecordIterator does Iterator {
 
 }
 
-class AlignmentFile {
+class AlignmentFile is export {
     has $.bam-file;
     has $.flags;
 
