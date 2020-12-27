@@ -52,12 +52,13 @@ class BamRecord is repr('CStruct') {
     }
 
     method name {
-        nativecast(Str, $.data);
+        nativecast(Str, $.data)
     }
 
     method strand {
         if $.core.flag +& 0x10 == 0 { '+' } else { '-' }
     }
+
 }
 
 sub hts_open(Str is encoded('utf8'), Str is encoded('utf8'))
@@ -120,12 +121,24 @@ class SamRecord is export {
     has BamRecord $!rec;
     has SamHdr $!hdr;
 
+    has Blob $!data;
+
     submethod BUILD(:$!rec, :$!hdr) { }
 
-    method seq { $!rec.seq() }
-    method name { $!rec.name() }
-    method strand { $!rec.strand() }
+    method seq { $!rec.seq }
+    method name { $!rec.name }
+    method strand { $!rec.strand }
     method rname { sam_hdr_tid2name($!hdr, $!rec.core.tid) }
+    method alignment {
+        my $off = ($!rec.core.n_cigar +< 2) + $!rec.core.l_qname + $!rec.core.l_qseq + (($!rec.core.l_qseq + 1) +> 1);
+        my $len = $!rec.l_data - $off;
+
+        if $!data ~~ Blob:U {
+            $!data = Blob.new($!rec.data[0 ... $!rec.l_data - 1]);
+        }
+
+        $!data.subbuf($off, $off + $len).decode('utf-8')
+    }
 
     submethod DESTROY() {
         bam_destroy1($!rec);

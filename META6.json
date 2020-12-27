@@ -12,7 +12,9 @@
     "Bio::IO::FASTA" : "lib/Bio/IO/FASTA.rakumod"
   },
   "resources" : [
-    "libraries/hts"
+    "libraries/hts",
+    "t/brunello.bam",
+    "t/brunello.bam.bai"
   ],
   "source-url" : "git://github.com/schmidt73/Bio.git"
 }
