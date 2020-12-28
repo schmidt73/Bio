@@ -1,7 +1,7 @@
 use Test;
 use Bio::IO::Sam;
 
-plan 2;
+plan 3;
 
 use-ok 'Bio::IO::Sam';
 my $af = AlignmentFile.new(:bam-file('resources/t/brunello.bam'),
