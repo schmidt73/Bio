@@ -32,6 +32,10 @@ class BamRecord is repr('CStruct') {
     has uint32 $.m_data;
     has uint32 $.mempolicy;
 
+    method pos {
+        $.core.pos;
+    }
+
     method seq {
         constant %nuc-map = {
             0x1 => 'A',
@@ -125,6 +129,7 @@ class SamRecord is export {
 
     submethod BUILD(:$!rec, :$!hdr) { }
 
+    method pos { $!rec.pos }
     method seq { $!rec.seq }
     method name { $!rec.name }
     method strand { $!rec.strand }
